@@ -12,12 +12,9 @@ public class Principal {
     private Scanner teclado = new Scanner(System.in);
     private ConsumoAPI consumoApi = new ConsumoAPI();
     private final String URL_BASE = "https://gutendex.com/books/?";
-    //private final String API_KEY = "TU-APIKEY-OMDB";
     private ConvierteDatos conversor = new ConvierteDatos();
-    private List<DatosLibros> datosLibros = new ArrayList<>();
     private LibroRepository repositorio;
     private List<Libro> Libros;
-    private Optional<Libro> LibroBuscada;
 
     public Principal(LibroRepository repository) {
         this.repositorio = repository;
@@ -44,28 +41,16 @@ public class Principal {
                     buscarLibroWeb();
                     break;
                 case 2:
-                    buscarEpisodioPorLibro();
-                    break;
-                case 3:
                     mostrarLibrosBuscadas();
                     break;
+                case 3:
+                    mostrarAutoresRegistrados();
+                    break;
                 case 4:
-                    buscarLibrosPorTitulo();
+                    autoresVivosAño();
                     break;
                 case 5:
-                    buscarTop5Libros();
-                    break;
-                case 6:
-                    buscarLibrosPorCategoria();
-                    break;
-                case 7:
-                    filtrarLibrosPorTemporadaYEvaluacion();
-                    break;
-                case 8:
-                    buscarEpisodiosPorTitulo();
-                    break;
-                case 9:
-                    buscarTop5Episodios();
+                    mostrarLibrosIdioma();
                     break;
                 case 0:
                     System.out.println("Cerrando la aplicación...");
@@ -85,43 +70,13 @@ public class Principal {
         DatosLibros datos = conversor.obtenerDatos(json, DatosLibros.class);
         return datos;
     }
-    private void buscarEpisodioPorLibro() {
-        mostrarLibrosBuscadas();
-        System.out.println("Escribe el nombre de la Libro de la cual quieres ver los episodios");
-        var nombreLibro = teclado.nextLine();
 
-        Optional<Libro> Libro = Libros.stream()
-                .filter(s -> s.getTitulo().toLowerCase().contains(nombreLibro.toLowerCase()))
-                .findFirst();
-
-        if(Libro.isPresent()){
-            var LibroEncontrada = Libro.get();
-            List<DatosTemporadas> temporadas = new ArrayList<>();
-
-            // for (int i = 1; i <= LibroEncontrada.getTotalTemporadas(); i++) {
-            //     var json = consumoApi.obtenerDatos(URL_BASE + LibroEncontrada.getTitulo().replace(" ", "+") + "&season=" + i + API_KEY);
-            //     DatosTemporadas datosTemporada = conversor.obtenerDatos(json, DatosTemporadas.class);
-            //     temporadas.add(datosTemporada);
-            // }
-            temporadas.forEach(System.out::println);
-
-            List<Episodio> episodios = temporadas.stream()
-                    .flatMap(d -> d.episodios().stream()
-                            .map(e -> new Episodio(d.numero(), e)))
-                    .collect(Collectors.toList());
-
-            LibroEncontrada.setEpisodios(episodios);
-            repositorio.save(LibroEncontrada);
-        }
-
-
-
-    }
     private void buscarLibroWeb() {
         DatosLibros datos = getDatosLibro();
-        // Libro Libro = new Libro(datos);
-        // repositorio.save(Libro);
-        //datosLibros.add(datos);
+        Libros = datos.results().stream()
+                .map(Libro::new)
+                .collect(Collectors.toList());
+        repositorio.saveAll(Libros);
         System.out.println(datos);
     }
 
@@ -129,69 +84,45 @@ public class Principal {
         Libros = repositorio.findAll();
 
         Libros.stream()
-                .sorted(Comparator.comparing(Libro::getGenero))
-                .forEach(System.out::println);
+                 .sorted(Comparator.comparing(Libro::getCantidadDescargas).reversed())
+                 .forEach(System.out::println);
     }
 
-    private void buscarLibrosPorTitulo(){
-        System.out.println("Escribe el nombre del libro que deseas buscar");
-        var nombreLibro = teclado.nextLine();
-        LibroBuscada = repositorio.findByTituloContainsIgnoreCase(nombreLibro);
+    private void mostrarAutoresRegistrados() {
+        Libros = repositorio.findAll();
 
-        if(LibroBuscada.isPresent()){
-            System.out.println("El libro buscado es: " + LibroBuscada.get());
-        } else {
-            System.out.println("Libor no encontrado");
-        }
-
-    }
-    private void buscarTop5Libros(){
-        List<Libro> topLibros = repositorio.findTop5ByOrderByEvaluacionDesc();
-        topLibros.forEach(s ->
-                System.out.println("Libro: " + s.getTitulo() + " Evaluacion: " + s.getEvaluacion()) );
+        List<Autor> auotores = Libros.stream()
+                .flatMap(s -> s.getAutores().stream())
+                .collect(Collectors.toList());
+        System.out.println("Autores registrados");
+        auotores.forEach(System.out::println);
     }
 
-    private void buscarLibrosPorCategoria(){
-        System.out.println("Escriba el genero/categoría de la Libro que desea buscar");
-        var genero = teclado.nextLine();
-        var categoria = Categoria.fromEspanol(genero);
-        List<Libro> LibrosPorCategoria = repositorio.findByGenero(categoria);
-        System.out.println("Las Libros de la categoría " + genero);
-        LibrosPorCategoria.forEach(System.out::println);
-    }
-    public void filtrarLibrosPorTemporadaYEvaluacion(){
-        System.out.println("¿Filtrar séries con cuántas temporadas? ");
-        var totalTemporadas = teclado.nextInt();
+    private void autoresVivosAño() {
+        System.out.println("Escribe el año que deseas buscar");
+        var año = teclado.nextInt();
         teclado.nextLine();
-        System.out.println("¿Com evaluación apartir de cuál valor? ");
-        var evaluacion = teclado.nextDouble();
-        teclado.nextLine();
-        List<Libro> filtroLibros = repositorio.LibrosPorTemparadaYEvaluacion(totalTemporadas,evaluacion);
-        System.out.println("*** Libros filtradas ***");
-        filtroLibros.forEach(s ->
-                System.out.println(s.getTitulo() + "  - evaluacion: " + s.getEvaluacion()));
+        Libros = repositorio.findAll();
+
+        List<Autor> autores = Libros.stream()
+                .flatMap(s -> s.getAutores().stream())
+                .filter(s -> s.getAnioNacimiento() <= año && s.getAnioFallecimiento() >= año)
+                .collect(Collectors.toList());
+        System.out.println("Autores vivos en el año " + año);
+        autores.forEach(System.out::println);
     }
 
-    private void  buscarEpisodiosPorTitulo(){
-        System.out.println("Escribe el nombre del episodio que deseas buscar");
-        var nombreEpisodio = teclado.nextLine();
-        List<Episodio> episodiosEncontrados = repositorio.episodiosPorNombre(nombreEpisodio);
-        // episodiosEncontrados.forEach(e ->
-                // System.out.printf("Libro: %s Temporada %s Episodio %s Evaluación %s\n",
-                //         e.getLibro().getTitulo(), e.getTemporada(), e.getNumeroEpisodio(), e.getEvaluacion()));
+    private void mostrarLibrosIdioma() {
+        System.out.println("Escribe el idioma que deseas buscar");
+        var idioma = teclado.nextLine();
+        Libros = repositorio.findAll();
 
+        List<Libro> libros = Libros.stream()
+                .filter(s -> Arrays.asList(s.getLanguages()).contains(idioma))
+                .collect(Collectors.toList());
+        System.out.println("Libros en idioma " + idioma);
+        libros.forEach(System.out::println);
     }
-
-    private void buscarTop5Episodios(){
-        buscarLibrosPorTitulo();
-        if(LibroBuscada.isPresent()){
-            Libro Libro = LibroBuscada.get();
-            List<Episodio> topEpisodios = repositorio.top5Episodios(Libro);
-            // topEpisodios.forEach(e ->
-                    // System.out.printf("Libro: %s - Temporada %s - Episodio %s - Evaluación %s\n",
-                    //         e.getLibro().getTitulo(), e.getTemporada(), e.getTitulo(), e.getEvaluacion()));
-
-        }
-    }
+    
 }
 

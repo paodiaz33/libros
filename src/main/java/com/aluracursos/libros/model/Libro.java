@@ -3,58 +3,43 @@ package com.aluracursos.libros.model;
 import jakarta.persistence.*;
 
 import java.util.List;
-import java.util.OptionalDouble;
 
 @Entity
-@Table(name = "series")
+@Table(name = "libros")
 public class Libro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
-    @Column(unique = true)
     private String titulo;
-    private Integer totalTemporadas;
-    private Double evaluacion;
-    private String poster;
-    @Enumerated(EnumType.STRING)
-    private Categoria genero;
-    private String actores;
-    private String sinopsis;
-    @OneToMany(mappedBy = "serie", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<Episodio> episodios;
+    private String[] languages;
+    private Integer cantidadDescargas;
+    @OneToMany(mappedBy = "libro", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Autor> autores;
 
     public Libro(){}
 
-    // public Libro(DatosLibro datosSerie){
-    //     this.titulo = datosSerie.titulo();
-    //     this.totalTemporadas = datosSerie.totalTemporadas();
-    //     this.evaluacion = OptionalDouble.of(Double.valueOf(datosSerie.evaluacion())).orElse(0);
-    //     this.poster = datosSerie.poster();
-    //     this.genero = Categoria.fromString(datosSerie.genero().split(",")[0].trim());
-    //     this.actores = datosSerie.actores();
-    //     this.sinopsis = datosSerie.sinopsis();
-    // }
+    public Libro(DatosLibro datosLibro){
+        this.titulo = datosLibro.titulo();
+        this.languages = datosLibro.idiomas().toArray(new String[0]);
+        this.cantidadDescargas = datosLibro.descargas();
+        this.autores = datosLibro.autores().stream().map(autor -> new Autor(autor, this)).toList();
+    }
 
     @Override
     public String toString() {
-        return  "genero=" + genero +
-                "titulo='" + titulo + '\'' +
-                ", totalTemporadas=" + totalTemporadas +
-                ", evaluacion=" + evaluacion +
-                ", poster='" + poster + '\'' +
-                ", actores='" + actores + '\'' +
-                ", sinopsis='" + sinopsis + '\'' +
-                ", episodios='" + episodios + '\'';
+        return  "Titulo: " + titulo + "\n" +
+                "Idiomas: " + String.join(", ", languages) + "\n" +
+                "Cantidad de descargas: " + cantidadDescargas + "\n" +
+                "Autores: " + autores + "\n";
 
     }
 
-    public List<Episodio> getEpisodios() {
-        return episodios;
+    public void setAutores(List<Autor> autores) {
+        this.autores = autores;
     }
 
-    public void setEpisodios(List<Episodio> episodios) {
-        episodios.forEach(e -> e.setSerie(this));
-        this.episodios = episodios;
+    public List<Autor> getAutores() {
+        return autores;
     }
 
     public Long getId() {
@@ -73,51 +58,19 @@ public class Libro {
         this.titulo = titulo;
     }
 
-    public Integer getTotalTemporadas() {
-        return totalTemporadas;
+    public String[] getLanguages() {
+        return languages;
     }
 
-    public void setTotalTemporadas(Integer totalTemporadas) {
-        this.totalTemporadas = totalTemporadas;
+    public void setLanguages(String[] languages) {
+        this.languages = languages;
     }
 
-    public Double getEvaluacion() {
-        return evaluacion;
+    public Integer getCantidadDescargas() {
+        return cantidadDescargas;
     }
 
-    public void setEvaluacion(Double evaluacion) {
-        this.evaluacion = evaluacion;
-    }
-
-    public String getPoster() {
-        return poster;
-    }
-
-    public void setPoster(String poster) {
-        this.poster = poster;
-    }
-
-    public Categoria getGenero() {
-        return genero;
-    }
-
-    public void setGenero(Categoria genero) {
-        this.genero = genero;
-    }
-
-    public String getActores() {
-        return actores;
-    }
-
-    public void setActores(String actores) {
-        this.actores = actores;
-    }
-
-    public String getSinopsis() {
-        return sinopsis;
-    }
-
-    public void setSinopsis(String sinopsis) {
-        this.sinopsis = sinopsis;
+    public void setCantidadDescargas(Integer cantidadDescargas) {
+        this.cantidadDescargas = cantidadDescargas;
     }
 }

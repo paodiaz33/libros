@@ -8,5 +8,5 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record DatosLibros(@JsonAlias("count") Integer count,
                            @JsonAlias("next") String next,
                            @JsonAlias("previous") String previous,
-                           @JsonAlias("results") DatosLibro[] results) {
+                           @JsonAlias("results") List<DatosLibro> results) {
 }
